@@ -1,7 +1,8 @@
 runpod>=1.7.0
-torch==2.4.0
-torchvision==0.19.0
-torchaudio==2.4.0
+torch==2.4.0+cu124
+torchvision==0.19.0+cu124
+torchaudio==2.4.0+cu124
+--extra-index-url https://download.pytorch.org/whl/cu124
 diffusers==0.33.1
 transformers==4.44.2
 accelerate==0.33.0
@@ -10,7 +11,6 @@ huggingface_hub==0.24.6
 safetensors==0.4.4
 imageio==2.35.0
 imageio-ffmpeg==0.5.1
-av==12.3.0
 Pillow==10.4.0
 numpy==1.26.4
 scipy==1.13.0
