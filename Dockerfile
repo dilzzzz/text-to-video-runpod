@@ -20,12 +20,11 @@ RUN pip install \
     torchaudio==2.5.1 \
     --index-url https://download.pytorch.org/whl/cu124
 
-RUN pip install \
-    diffusers==0.38.0 \
-    transformers==4.47.0 \
-    accelerate==1.2.0 \
-    huggingface_hub==0.27.0 \
-    safetensors==0.4.4
+RUN pip install diffusers==0.38.0
+RUN pip install transformers==4.47.0
+RUN pip install accelerate==1.2.0
+RUN pip install huggingface_hub==0.27.0
+RUN pip install safetensors==0.4.4
 
 RUN pip install \
     runpod==1.7.4 \
