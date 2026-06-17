@@ -8,7 +8,7 @@ ENV HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 
-# System deps
+# System deps + C++ build tools
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsm6 \
@@ -16,12 +16,15 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     curl \
+    gcc \
+    g++ \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Pip upgrade
 RUN pip install --upgrade pip
 
-# PyTorch CPU first (CUDA installed via torch)
+# PyTorch cu124
 RUN pip install \
     torch==2.4.0 \
     torchvision==0.19.0 \
@@ -34,8 +37,7 @@ RUN pip install \
     transformers==4.44.2 \
     accelerate==0.33.0 \
     huggingface_hub==0.24.6 \
-    safetensors==0.4.4 \
-    sentencepiece==0.2.0
+    safetensors==0.4.4
 
 # RunPod + utils
 RUN pip install \
