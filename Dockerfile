@@ -15,7 +15,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Pre-download LTX-2.3 weights at build time
-RUN python builder/setup.py
-
 CMD ["python", "-u", "handler.py"]
