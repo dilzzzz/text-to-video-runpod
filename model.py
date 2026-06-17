@@ -1,5 +1,7 @@
 import torch
 import tempfile
+import numpy as np
+import imageio
 
 RESOLUTIONS = {
     "512x512":   (512,  512),
@@ -9,8 +11,7 @@ RESOLUTIONS = {
     "1920x1080": (1920, 1080),
 }
 
-_pipe      = None
-_upsampler = None
+_pipe = None
 
 
 def get_vram_gb():
@@ -52,22 +53,28 @@ def snap_frames(n):
     return max(lower if r < 4 else upper, 9)
 
 
-def check_audio_safe(width, height, vram_gb):
-    needed = {
-        (512,  512):  8,
-        (768,  432):  10,
-        (768,  768):  12,
-        (1280, 720):  16,
-        (1920, 1080): 23,
-    }.get((width, height), 16)
-    if vram_gb >= needed + 4:
-        return True, ""
-    elif vram_gb >= needed:
-        return True, f"tight VRAM ({needed}GB needed, {vram_gb:.0f}GB available)"
-    return False, (
-        f"audio disabled: {width}x{height} needs ~{needed}GB "
-        f"but only {vram_gb:.0f}GB available."
+def frames_to_mp4(frames_np, fps, output_path):
+    """
+    Save video frames to mp4 using imageio-ffmpeg (no av/PyAV needed).
+    frames_np: numpy array shape (T, H, W, 3), float32 0-1 or uint8 0-255
+    """
+    # Convert to uint8
+    if frames_np.dtype != np.uint8:
+        frames_uint8 = (np.clip(frames_np, 0, 1) * 255).astype(np.uint8)
+    else:
+        frames_uint8 = frames_np
+
+    writer = imageio.get_writer(
+        output_path,
+        fps=fps,
+        codec="libx264",
+        quality=8,
+        pixelformat="yuv420p",
     )
+    for frame in frames_uint8:
+        writer.append_data(frame)
+    writer.close()
+    print(f"[MODEL] Saved {len(frames_uint8)} frames → {output_path}")
 
 
 def generate_video(
@@ -81,7 +88,6 @@ def generate_video(
     use_upsampler=False,
 ):
     from diffusers.pipelines.ltx2.utils import DEFAULT_NEGATIVE_PROMPT
-    from diffusers.pipelines.ltx2.export_utils import encode_video
 
     pipe    = get_pipeline()
     vram_gb = get_vram_gb()
@@ -90,19 +96,11 @@ def generate_video(
     height     = snap_dim(height)
     num_frames = snap_frames(num_frames)
 
-    audio_warning = ""
-    actual_audio  = enable_audio
-    if enable_audio:
-        safe, reason = check_audio_safe(width, height, vram_gb)
-        if not safe:
-            actual_audio  = False
-            audio_warning = reason
-            print(f"[MODEL] WARNING: {reason}")
-
     neg = negative_prompt or DEFAULT_NEGATIVE_PROMPT
     generator = torch.Generator("cuda").manual_seed(seed) if seed != -1 else None
 
-    print(f"[MODEL] Generating {width}x{height} | {num_frames}f | audio={actual_audio}")
+    print(f"[MODEL] Generating {width}x{height} | {num_frames}f @ {fps}fps")
+    print(f"[MODEL] Prompt: '{prompt[:80]}'")
 
     output = pipe(
         prompt=prompt,
@@ -118,25 +116,18 @@ def generate_video(
         return_dict=True,
     )
 
-    video_np   = output.frames[0]
-    audio_data = output.audios if actual_audio else None
-    audio_sr   = pipe.vocoder.config.output_sampling_rate if actual_audio else None
+    # frames shape: (1, T, H, W, 3)
+    video_np = output.frames[0]  # (T, H, W, 3)
 
     tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
     tmp.close()
 
-    encode_video(
-        video_np,
-        fps=fps,
-        audio=audio_data[0].float().cpu() if actual_audio else None,
-        audio_sample_rate=audio_sr,
-        output_path=tmp.name,
-    )
+    frames_to_mp4(video_np, fps=fps, output_path=tmp.name)
 
-    print(f"[MODEL] Saved: {tmp.name}")
+    print(f"[MODEL] Done: {tmp.name}")
     return {
         "path":          tmp.name,
-        "has_audio":     actual_audio,
-        "audio_warning": audio_warning,
+        "has_audio":     False,
+        "audio_warning": "audio not supported in this build",
         "num_frames":    num_frames,
     }
