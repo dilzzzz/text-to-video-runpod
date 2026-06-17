@@ -8,38 +8,25 @@ ENV HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 
-# System deps + C++ build tools
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    git \
-    wget \
-    curl \
-    gcc \
-    g++ \
-    cmake \
+    ffmpeg libsm6 libxext6 git wget curl gcc g++ cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Pip upgrade
 RUN pip install --upgrade pip
 
-# PyTorch cu124
 RUN pip install \
-    torch==2.4.0 \
-    torchvision==0.19.0 \
-    torchaudio==2.4.0 \
+    torch==2.5.1 \
+    torchvision==0.20.1 \
+    torchaudio==2.5.1 \
     --index-url https://download.pytorch.org/whl/cu124
 
-# Core ML deps
 RUN pip install \
-    diffusers==0.33.1 \
-    transformers==4.44.2 \
-    accelerate==0.33.0 \
-    huggingface_hub==0.24.6 \
+    diffusers==0.38.0 \
+    transformers==4.47.0 \
+    accelerate==1.2.0 \
+    huggingface_hub==0.27.0 \
     safetensors==0.4.4
 
-# RunPod + utils
 RUN pip install \
     runpod==1.7.4 \
     Pillow==10.4.0 \
@@ -49,7 +36,6 @@ RUN pip install \
     imageio==2.35.0 \
     imageio-ffmpeg==0.5.1
 
-# Copy source
 COPY . .
 
 CMD ["python", "-u", "handler.py"]
