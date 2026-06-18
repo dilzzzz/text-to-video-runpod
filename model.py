@@ -1,3 +1,8 @@
+"""
+model.py — LTX-2.3 via official ltx-pipelines package
+HuggingFace: Lightricks/LTX-2.3
+Requires: Python>=3.12, CUDA>12.7, PyTorch~=2.7
+"""
 import torch
 import tempfile
 import numpy as np
@@ -23,17 +28,17 @@ def get_vram_gb():
 def get_pipeline():
     global _pipe
     if _pipe is None:
-        from diffusers import LTX2Pipeline
+        from ltx_pipelines.pipeline import LTXPipeline
+
         vram = get_vram_gb()
-        dtype = torch.bfloat16 if vram < 40 else torch.float16
-        print(f"[MODEL] VRAM: {vram:.1f}GB | dtype: {dtype}")
-        print(f"[MODEL] Loading LTX-2.3...")
-        _pipe = LTX2Pipeline.from_pretrained(
-            "diffusers/LTX-2.3-Diffusers",
-            torch_dtype=dtype,
+        print(f"[MODEL] VRAM: {vram:.1f}GB")
+        print(f"[MODEL] Loading Lightricks/LTX-2.3...")
+
+        _pipe = LTXPipeline.from_pretrained(
+            "Lightricks/LTX-2.3",
+            torch_dtype=torch.bfloat16,
         )
         _pipe.enable_model_cpu_offload()
-        _pipe.vae.enable_tiling()
         print(f"[MODEL] LTX-2.3 ready.")
     return _pipe
 
@@ -54,11 +59,7 @@ def snap_frames(n):
 
 
 def frames_to_mp4(frames_np, fps, output_path):
-    """
-    Save video frames to mp4 using imageio-ffmpeg (no av/PyAV needed).
-    frames_np: numpy array shape (T, H, W, 3), float32 0-1 or uint8 0-255
-    """
-    # Convert to uint8
+    """Save frames to mp4 using imageio-ffmpeg."""
     if frames_np.dtype != np.uint8:
         frames_uint8 = (np.clip(frames_np, 0, 1) * 255).astype(np.uint8)
     else:
@@ -87,8 +88,6 @@ def generate_video(
     enable_audio=False,
     use_upsampler=False,
 ):
-    from diffusers.pipelines.ltx2.utils import DEFAULT_NEGATIVE_PROMPT
-
     pipe    = get_pipeline()
     vram_gb = get_vram_gb()
 
@@ -96,7 +95,7 @@ def generate_video(
     height     = snap_dim(height)
     num_frames = snap_frames(num_frames)
 
-    neg = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    neg = negative_prompt or "worst quality, inconsistent motion, blurry, jittery, distorted"
     generator = torch.Generator("cuda").manual_seed(seed) if seed != -1 else None
 
     print(f"[MODEL] Generating {width}x{height} | {num_frames}f @ {fps}fps")
@@ -116,7 +115,6 @@ def generate_video(
         return_dict=True,
     )
 
-    # frames shape: (1, T, H, W, 3)
     video_np = output.frames[0]  # (T, H, W, 3)
 
     tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
@@ -128,6 +126,6 @@ def generate_video(
     return {
         "path":          tmp.name,
         "has_audio":     False,
-        "audio_warning": "audio not supported in this build",
+        "audio_warning": "",
         "num_frames":    num_frames,
     }
