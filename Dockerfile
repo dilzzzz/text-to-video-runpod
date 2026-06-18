@@ -35,7 +35,7 @@ RUN pip install \
 RUN pip install diffusers==0.38.0
 RUN pip install transformers==4.51.0
 RUN pip install accelerate==1.2.0
-RUN pip install huggingface_hub==0.27.0
+RUN pip install huggingface_hub==0.30.0
 RUN pip install safetensors==0.4.4
 
 # RunPod + utils + av (required for LTX video export)
