@@ -6,14 +6,13 @@ ARG HF_TOKEN
 ENV HF_TOKEN=${HF_TOKEN}
 ENV HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_NO_CACHE_DIR=1
 
 # Python 3.12 + system deps
 RUN apt-get update && apt-get install -y \
     python3.12 \
     python3.12-dev \
-    python3.12-venv \
     python3-pip \
+    python3-venv \
     ffmpeg \
     libsm6 \
     libxext6 \
@@ -27,30 +26,33 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip --break-system-packages
+# Virtual environment use කරලා pip install (system pip conflict avoid)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# PyTorch 2.7 + CUDA 12.8
-RUN pip install --break-system-packages \
+RUN pip install --upgrade pip
+
+# PyTorch 2.7 CUDA 12.8
+RUN pip install \
     torch==2.7.0 \
     torchvision==0.22.0 \
     torchaudio==2.7.0 \
     --index-url https://download.pytorch.org/whl/cu128
 
-# LTX-2.3 official packages from GitHub
-RUN pip install --break-system-packages \
+# LTX-2.3 official packages
+RUN pip install \
     "git+https://github.com/Lightricks/LTX-2.git#subdirectory=ltx-core" \
     "git+https://github.com/Lightricks/LTX-2.git#subdirectory=ltx-pipelines"
 
 # Supporting deps
-RUN pip install --break-system-packages \
+RUN pip install \
     huggingface_hub>=0.30.0 \
     transformers>=4.51.0 \
     accelerate>=1.2.0 \
-    safetensors>=0.4.4 \
-    diffusers>=0.38.0
+    safetensors>=0.4.4
 
 # RunPod + utils
-RUN pip install --break-system-packages \
+RUN pip install \
     runpod==1.7.4 \
     Pillow \
     numpy \
