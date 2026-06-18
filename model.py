@@ -46,14 +46,14 @@ def generate_video(
     seed=-1, enable_audio=False, use_upsampler=False,
 ):
     pipe = get_pipeline()
-    width = snap_dim(width)
-    height = snap_dim(height)
+    width      = snap_dim(width)
+    height     = snap_dim(height)
     num_frames = snap_frames(num_frames)
 
     neg = negative_prompt or "worst quality, inconsistent motion, blurry, jittery, distorted"
     generator = torch.Generator("cuda").manual_seed(seed) if seed != -1 else None
 
-    print(f"[MODEL] {width}x{height} | {num_frames}f | prompt: '{prompt[:60]}'")
+    print(f"[MODEL] {width}x{height} | {num_frames}f | '{prompt[:60]}'")
 
     output = pipe(
         prompt=prompt,
@@ -75,10 +75,17 @@ def generate_video(
     tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
     tmp.close()
 
-    writer = imageio.get_writer(tmp.name, fps=fps, codec="libx264", quality=8, pixelformat="yuv420p")
+    writer = imageio.get_writer(
+        tmp.name, fps=fps, codec="libx264", quality=8, pixelformat="yuv420p"
+    )
     for f in frames:
         writer.append_data(f)
     writer.close()
 
     print(f"[MODEL] Saved: {tmp.name}")
-    return {"path": tmp.name, "has_audio": False, "audio_warning": "", "num_frames": num_frames}
+    return {
+        "path": tmp.name,
+        "has_audio": False,
+        "audio_warning": "",
+        "num_frames": num_frames,
+    }
