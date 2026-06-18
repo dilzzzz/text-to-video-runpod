@@ -1,7 +1,9 @@
 import torch
 import tempfile
+import os
 import numpy as np
 import imageio
+from huggingface_hub import snapshot_download
 
 RESOLUTIONS = {
     "512x512":   (512,  512),
@@ -11,20 +13,38 @@ RESOLUTIONS = {
     "1920x1080": (1920, 1080),
 }
 
+MODEL_ID    = "Lightricks/LTX-Video-0.9.8-dev"
+MODEL_CACHE = "/tmp/ltx-model"
+
 _pipe = None
+
+def download_model():
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    print(f"[MODEL] Downloading {MODEL_ID} to {MODEL_CACHE}...")
+    snapshot_download(
+        repo_id=MODEL_ID,
+        local_dir=MODEL_CACHE,
+        token=token,
+        ignore_patterns=["*.msgpack", "*.h5", "flax_model*"],
+    )
+    print(f"[MODEL] Download complete.")
 
 def get_pipeline():
     global _pipe
     if _pipe is None:
+        if not os.path.exists(MODEL_CACHE):
+            download_model()
+
         from diffusers import LTXConditionPipeline
-        print("[MODEL] Loading LTX-Video-0.9.8...")
+        print(f"[MODEL] Loading from {MODEL_CACHE}...")
         _pipe = LTXConditionPipeline.from_pretrained(
-            "Lightricks/LTX-Video-0.9.8-dev",
+            MODEL_CACHE,
             torch_dtype=torch.bfloat16,
+            local_files_only=True,
         )
         _pipe.enable_model_cpu_offload()
         _pipe.vae.enable_tiling()
-        print("[MODEL] Ready.")
+        print(f"[MODEL] Ready.")
     return _pipe
 
 def snap_dim(d):
