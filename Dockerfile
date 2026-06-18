@@ -33,7 +33,7 @@ RUN pip install \
 
 # Core ML deps (separate installs to avoid conflicts)
 RUN pip install diffusers==0.38.0
-RUN pip install transformers==4.47.0
+RUN pip install transformers==4.51.0
 RUN pip install accelerate==1.2.0
 RUN pip install huggingface_hub==0.27.0
 RUN pip install safetensors==0.4.4
