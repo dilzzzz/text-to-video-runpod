@@ -13,7 +13,7 @@ RESOLUTIONS = {
     "1920x1080": (1920, 1080),
 }
 
-MODEL_ID    = "Lightricks/LTX-Video-0.9.8-dev"
+MODEL_ID = "Lightricks/LTX-Video"
 MODEL_CACHE = "/tmp/ltx-model"
 
 _pipe = None
